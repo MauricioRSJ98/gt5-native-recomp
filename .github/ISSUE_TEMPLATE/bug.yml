@@ -1,0 +1,35 @@
+name: Reproducible bug / blocker
+description: Report a specific integration, generation or boot problem.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: "Do not attach game files, generated instruction bodies, binaries, firmware, keys, credentials or unreviewed full dumps. This project is not playable yet."
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem and expected behavior
+      description: Identify the failing component and what evidence supports the expected behavior.
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, GPU/driver, toolchain/dependency versions, game identifier/update and repository commit. Remove personal paths.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction and minimal diagnostics
+      description: Commands, exit code and relevant native target/LR/thread or service. State the checks already performed.
+    validations:
+      required: true
+  - type: checkboxes
+    id: content
+    attributes:
+      label: Public content
+      options:
+        - label: I reviewed this report and included no game binaries, generated instruction bodies, keys, credentials or personal data.
+          required: true

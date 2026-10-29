@@ -1,0 +1,14 @@
+{
+  "archive_sha256": "0b15c404b89bfa0f3afec8c4883fc7ef1c8f71a9b936b47ba6555401c14285be",
+  "changed_files": [
+    "CMakeLists.txt",
+    "libs/spurs/cellSpurs.c",
+    "libs/video/rsx_live_draw.c",
+    "libs/video/rsx_shader_spirv.cpp",
+    "libs/video/rsx_vulkan_backend.c",
+    "runtime/ppu/ppu_loader.cpp",
+    "runtime/ppu/ppu_sysprx.cpp",
+    "runtime/spu/spu_workload.c",
+    "runtime/spu/spurs_job.c"
+  ]
+}

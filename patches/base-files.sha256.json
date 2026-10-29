@@ -1,0 +1,11 @@
+{
+  "CMakeLists.txt": "235185458297d6d8d8b3794bec645955539f7a9a19f46ef805a1fd27c9a66bcb",
+  "libs/spurs/cellSpurs.c": "d721c0d8413cc8a637a5d53e2fa92203975e2acda8a8cb3df4578948b4b5871c",
+  "libs/video/rsx_live_draw.c": "8fce7752a546797a709231fb65ce8a380920072185359b4679919fff0b2718cf",
+  "libs/video/rsx_shader_spirv.cpp": "c6672b2d959c41fc1279127a7e762a191298e3a22aeae5a060a7361418fcf1f9",
+  "libs/video/rsx_vulkan_backend.c": "3040c9a1c5286e42865a5a4bf0205ecf0a828336c4b7940985183591b687fc93",
+  "runtime/ppu/ppu_loader.cpp": "3a509b5293812a33652f93ea0c1101aad8b67f65bd9b9b6f809921ef8e45e152",
+  "runtime/ppu/ppu_sysprx.cpp": "e8e03821d2053dd8a1f5bcd380a38c16e43035a98a0ca7cb5a657bd2ac4126d9",
+  "runtime/spu/spu_workload.c": "de608dba8ecbef3dac82f77fdfa631b98178b812c04a7690e49bbddbfb159ecb",
+  "runtime/spu/spurs_job.c": "0b95b02529d2cc6ebf5fbf963d2e6d92ca3196f788bb853852b0f6526612b218"
+}

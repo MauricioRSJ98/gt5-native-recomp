@@ -1,0 +1,17 @@
+{
+  "scope": "Inferred code/data boundaries for three stripped embedded SPU images. Static evidence only; indirect dispatch and runtime execution remain unvalidated. Full image bytes must still be loaded.",
+  "images": {
+    "d3ef82d216f3e9b4a6ee9795e9648c2fb9dc2432138242bbf3777eb6bb7f0335": {
+      "code_end": "0x7df0",
+      "evidence": "Final callee-save epilogue ends in bi r0 at 0x7dec. Following aligned data includes jump addresses, vector constants and shuffle masks. ILA references at 0x6958 and 0x6960 address mask data in this tail."
+    },
+    "b59efc6c8af75e0e643003a9290d8af9f6f97162284c0e968ac5fdc880169060": {
+      "code_end": "0x18ef8",
+      "evidence": "Final callee-save epilogue ends in bi r0 at 0x18ef4. Following region contains masks/constants; LQR instructions in the earlier code explicitly read several unresolved mask qwords."
+    },
+    "9e2637b7ea5d2a98d758982b22312455a294a4e8d03112ca032e2d867fbbe5c0": {
+      "code_end": "0x19208",
+      "evidence": "Final callee-save epilogue ends in bi r0 at 0x19204. Following region contains numeric/vector constants; LQR at 0x1214c and 0x12db4 reads the mask at 0x19580."
+    }
+  }
+}

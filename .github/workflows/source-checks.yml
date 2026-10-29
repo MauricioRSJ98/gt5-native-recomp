@@ -1,0 +1,41 @@
+name: Source checks
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  source:
+    name: Public source and runtime patch
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.12'
+      - name: Source hygiene and syntax (no game data)
+        run: python scripts/check_public_source.py --git-index
+      - name: Verify runtime patch against pinned source
+        run: |
+          python - <<'PY'
+          import hashlib, json, pathlib, subprocess, tempfile, urllib.request, zipfile
+          root=pathlib.Path.cwd()
+          dep=json.loads((root/'dependencies.lock.json').read_text())['dependencies'][0]
+          with tempfile.TemporaryDirectory() as temporary:
+              temporary=pathlib.Path(temporary)
+              archive=temporary/'runtime.zip'
+              with urllib.request.urlopen(dep['url'],timeout=90) as response:
+                  archive.write_bytes(response.read())
+              with zipfile.ZipFile(archive) as z:
+                  expected=json.loads((root/'patches/base-files.sha256.json').read_text())
+                  for name,digest in expected.items():
+                      member=next(x for x in z.namelist() if x.endswith('/'+name))
+                      data=z.read(member)
+                      assert hashlib.sha256(data).hexdigest()==digest,name
+                      target=temporary/name
+                      target.parent.mkdir(parents=True,exist_ok=True)
+                      target.write_bytes(data)
+              subprocess.run(['git','apply','--check',str(root/'patches/ps3recomp-gt5.patch')],cwd=temporary,check=True)
+          PY

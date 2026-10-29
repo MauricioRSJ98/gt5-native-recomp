@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Questions and architecture discussions
+    url: https://github.com/MauricioRSJ98/gt5-native-recomp/discussions
+    about: Use Discussions for setup questions, ideas and planning. English or Portuguese is welcome.

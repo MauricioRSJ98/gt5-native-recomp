@@ -1,0 +1,12 @@
+{
+  "schema": 1,
+  "dependencies": [
+    {"name":"ps3recomp","url":"https://codeload.github.com/sp00nznet/ps3recomp/zip/4e8f3ca87a3e1d87bb83b8b7e9348fe2685cd514","destination":"third_party/ps3recomp-master","archive":"ps3recomp-master.zip"},
+    {"name":"GT5P","url":"https://codeload.github.com/sp00nznet/GT5P/zip/65c75d61ade58efb4f6af5f099c3b78b64c0a8e6","destination":"third_party/GT5P-main","archive":"gt5p.zip"},
+    {"name":"Vulkan-Headers","url":"https://codeload.github.com/KhronosGroup/Vulkan-Headers/zip/refs/tags/vulkan-sdk-1.4.363.0","destination":"third_party/Vulkan-Headers-vulkan-sdk-1.4.363.0","archive":"vulkan-headers.zip"},
+    {"name":"glslang","url":"https://codeload.github.com/KhronosGroup/glslang/zip/refs/tags/16.6.0","destination":"third_party/glslang-16.6.0","archive":"glslang.zip"},
+    {"name":"SPIRV-Tools","url":"https://codeload.github.com/KhronosGroup/SPIRV-Tools/zip/ef96ed763b43b59b33b31b362f09a02b729fa1c9","destination":"third_party/glslang-16.6.0/External/spirv-tools","archive":"spirv-tools.zip"},
+    {"name":"SPIRV-Headers","url":"https://codeload.github.com/KhronosGroup/SPIRV-Headers/zip/496543121ce6419f23d6fa5d7194ba66c36212d2","destination":"third_party/glslang-16.6.0/External/spirv-tools/external/spirv-headers","archive":"spirv-headers.zip"},
+    {"name":"SDL2 MinGW","url":"https://github.com/libsdl-org/SDL/releases/download/release-2.32.10/SDL2-devel-2.32.10-mingw.zip","destination":"tools/SDL2-2.32.10","archive":"sdl2-mingw.zip","sha256":"f15cff5fca62ec9381a016ef1d42a95c638cd72d2f226ba5781c76fe43dbd1ac"}
+  ]
+}

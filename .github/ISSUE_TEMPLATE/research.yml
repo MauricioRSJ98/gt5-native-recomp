@@ -1,0 +1,23 @@
+name: Research / contribution proposal
+description: Propose a focused investigation or implementation.
+labels: [research]
+body:
+  - type: textarea
+    id: scope
+    attributes:
+      label: Problem and scope
+      description: What concrete blocker would this address? Which component would change?
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence and approach
+      description: Link official references, separate observations from hypotheses and suggest the smallest useful validation.
+    validations:
+      required: true
+  - type: textarea
+    id: participation
+    attributes:
+      label: How you can help
+      description: Say whether you want to implement, investigate, review or discuss. English and Portuguese are welcome.

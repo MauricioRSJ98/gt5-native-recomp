@@ -1,0 +1,299 @@
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -43,6 +43,10 @@
+ )
+ # Exclude test harnesses (e.g. libs/video/tests/*): they define their own main().
+ list(FILTER HLE_SOURCES EXCLUDE REGEX "/tests/")
++option(PS3RECOMP_RSX_D3D12 "Build the Direct3D backend" ON)
++if(NOT PS3RECOMP_RSX_D3D12)
++    list(FILTER HLE_SOURCES EXCLUDE REGEX "rsx_d3d12_backend\\.c$")
++endif()
+ 
+ # The Vulkan RSX backend is opt-in while it grows (stage V0: clear + present).
+ # It loads libvulkan at run time, so building needs only the Vulkan headers --
+--- a/libs/spurs/cellSpurs.c
++++ b/libs/spurs/cellSpurs.c
+@@ -2671,6 +2671,12 @@
+ 
+ static void jc_signal_done(u32 jc_ea, int job_index)
+ {
++    /* GT5 native mode uses the SPU's actual user-event channel and bound
++     * port (lv2_register.c:spu_deliver_user_event). Completing a host walk
++     * does not authorize broadcasting a fabricated payload to every queue.
++     * RPCS3 SPUThread.cpp routes WrOutIntrMbox to spup[port] only. */
++    const char* aot_only = getenv("GT5_AOT_ONLY");
++    if (aot_only && *aot_only == '1') return;
+     /* Carry the job's mailbox answer in the completion event. On hardware the
+      * SPU's outbound/interrupt mailbox is what the SPURS event delivers; a
+      * synthetic payload means the caller reads back zero for whatever it
+--- a/libs/video/rsx_live_draw.c
++++ b/libs/video/rsx_live_draw.c
+@@ -24,7 +24,7 @@
+ #include "ps3emu/yz_frontier_trace.h"
+ #include "ps3emu/log_first.h"
+ 
+-#if !defined(_WIN32)
++#if !defined(_WIN32) || defined(PS3RECOMP_NO_D3D12)
+ 
+ /* Non-Windows: the whole path is a no-op (D3D12 is Windows-only). */
+ int  rsx_live_draw_enabled(void) { return 0; }
+--- a/libs/video/rsx_shader_spirv.cpp
++++ b/libs/video/rsx_shader_spirv.cpp
+@@ -35,7 +35,11 @@
+ 
+ #include <glslang/Public/ShaderLang.h>
+ #include <glslang/Public/ResourceLimits.h>
++#if __has_include(<glslang/SPIRV/GlslangToSpv.h>)
+ #include <glslang/SPIRV/GlslangToSpv.h>
++#else
++#include <SPIRV/GlslangToSpv.h>
++#endif
+ 
+ #include <mutex>
+ #include <string>
+--- a/libs/video/rsx_vulkan_backend.c
++++ b/libs/video/rsx_vulkan_backend.c
+@@ -38,7 +38,7 @@
+  * with spaces.
+  */
+ 
+-#ifndef _WIN32
++#if !defined(_WIN32) || defined(PS3RECOMP_VULKAN_WINDOWS)
+ 
+ #define VK_NO_PROTOTYPES
+ #include <vulkan/vulkan.h>
+@@ -58,7 +58,12 @@
+ #include <SDL2/SDL.h>
+ #include <SDL2/SDL_vulkan.h>
+ 
++#ifdef _WIN32
++#define WIN32_LEAN_AND_MEAN
++#include <windows.h>
++#else
+ #include <dlfcn.h>
++#endif
+ #include <pthread.h>
+ #include <stddef.h>
+ #include <stdint.h>
+@@ -251,6 +256,11 @@
+  * -------------------------------------------------------------------------*/
+ static int vk_load_library(void)
+ {
++#ifdef _WIN32
++    s_vk.lib=(void*)LoadLibraryExA("vulkan-1.dll",NULL,LOAD_LIBRARY_SEARCH_SYSTEM32);
++    if(!s_vk.lib){VK_LOG("Vulkan loader unavailable (Win32 %lu)\n",GetLastError());return -1;}
++    pvkGetInstanceProcAddr=(PFN_vkGetInstanceProcAddr)GetProcAddress((HMODULE)s_vk.lib,"vkGetInstanceProcAddr");
++#else
+     static const char* names[] = { "libvulkan.so.1", "libvulkan.so" };
+     for (size_t i = 0; i < sizeof names / sizeof names[0] && !s_vk.lib; i++)
+         s_vk.lib = dlopen(names[i], RTLD_NOW | RTLD_LOCAL);
+@@ -260,6 +270,7 @@
+     }
+     pvkGetInstanceProcAddr =
+         (PFN_vkGetInstanceProcAddr)dlsym(s_vk.lib, "vkGetInstanceProcAddr");
++#endif
+     if (!pvkGetInstanceProcAddr) { VK_LOG("libvulkan has no vkGetInstanceProcAddr\n"); return -1; }
+ #define LOAD_G(name) \
+     if (!(p##name = (PFN_##name)pvkGetInstanceProcAddr(VK_NULL_HANDLE, #name))) \
+@@ -4018,7 +4029,11 @@
+         pvkDestroyDevice(s_vk.device, NULL);
+     }
+     if (s_vk.instance && pvkDestroyInstance) pvkDestroyInstance(s_vk.instance, NULL);
++#ifdef _WIN32
++    if(s_vk.lib)FreeLibrary((HMODULE)s_vk.lib);
++#else
+     if (s_vk.lib) dlclose(s_vk.lib);
++#endif
+     free(s_vk.cpu_verts);
+     pthread_mutex_destroy(&s_vk.queue_mu);
+     pthread_mutex_destroy(&s_vk.present_mu);
+--- a/runtime/ppu/ppu_loader.cpp
++++ b/runtime/ppu/ppu_loader.cpp
+@@ -35,6 +35,9 @@
+ #include "ppu_tls.h"   /* PPU_THREAD_LOCAL, without a second ppu_context */
+ #define PPU_NO_INLINE_LOADS   /* this file defines the out-of-line accessors */
+ #include "ppu_recomp.h"
++#ifdef GT5_AOT_STRICT
++void gt5_missing_native(ppu_context*,uint64_t);
++#endif
+ #include "../spu/spu_coh_bitmap.h"   /* spu_coh_line_reserved, for the stores */
+ #include "ps3emu/ps3_ftrace.h"   /* PS3_FTRACE timeline */
+ #include "ps3emu/milestone.h"   /* ps3_ms / ps3_msf -- boot milestone log */     /* ppu_context, func decls, ppu_recomp_register */
+@@ -632,7 +635,12 @@
+     const uintptr_t* sp = (const uintptr_t*)c->Rsp;
+     for (int i = 0; i < 512; i++) {          /* 4 KB of stack */
+         uintptr_t v;
++#ifdef _MSC_VER
+         __try { v = sp[i]; } __except (1) { return 0; }
++#else
++        SIZE_T got=0;
++        if(!ReadProcessMemory(GetCurrentProcess(),sp+i,&v,sizeof(v),&got) || got!=sizeof(v))return 0;
++#endif
+         uint32_t g = samp_lookup(v);
+         if (g) return g;
+     }
+@@ -993,7 +1001,7 @@
+ static inline volatile LONG* resv_slot(uint64_t ea) { return &g_resv_locks[((uint32_t)ea >> 4) & (PPU_RESV_LOCKS - 1)]; }
+ static inline void resv_lock(volatile LONG* L)   { while (_InterlockedExchange(L, 1)) { while (*L) YieldProcessor(); } }
+ static inline void resv_unlock(volatile LONG* L) { _InterlockedExchange(L, 0); }
+-static inline void ppu_resv_break(uint64_t addr)   /* MUST hold g_resv_lock */
++extern "C" void ppu_resv_break(uint64_t addr)   /* MUST hold g_resv_lock */
+ {
+     uint64_t a = (uint32_t)addr;   /* match the inline guard: reserve_addr holds (uint32_t)ea */
+     long n = g_resv_ctx_n; if (n > PPU_RESV_MAX) n = PPU_RESV_MAX;
+@@ -2981,6 +2989,9 @@
+         return;   /* don't spam the log on a tight retry loop */
+     }
+     last = cur; streak = 0;
++#ifdef GT5_AOT_STRICT
++    gt5_missing_native(ctx,cur);
++#endif
+     fprintf(stderr, "[ppu] unresolved indirect call -> 0x%08X (tid=%llu lr=0x%08X)\n",
+             (uint32_t)ctx->ctr, (unsigned long long)ctx->thread_id, (uint32_t)ctx->lr);
+     /* With no NID table the very first one of these is the expected outcome
+--- a/runtime/ppu/ppu_sysprx.cpp
++++ b/runtime/ppu/ppu_sysprx.cpp
+@@ -17,6 +17,10 @@
+ #include <stdio.h>
+ #include <stdlib.h>
+ #include <string.h>
++#include <map>
++#include <list>
++#include <memory>
++#include <mutex>
+ /* win32_compat.h is <windows.h> on Windows (CRITICAL_SECTION for the real
+  * lwmutex exclusion) and the POSIX shims elsewhere -- Sleep, DWORD, QPC. */
+ #include "../platform/win32_compat.h"
+@@ -399,41 +403,66 @@
+  * handshakes, not long-term blocking. sys_lwcond_t is 8 bytes: +0x00 u32
+  * lwmutex EA, +0x04 u32 lwcond queue id. Titles read +0x00 themselves (an
+  * lwcond whose lwmutex reads 0 is treated as invalid). */
++struct LwcWaiter {HANDLE event;uint32_t thread;bool notified=false;};
++struct LwcSlot {std::mutex lock;std::list<LwcWaiter*> waiters;uint32_t mutex;};
++static std::mutex s_lwc_table_lock;
++static std::map<uint32_t,std::shared_ptr<LwcSlot>> s_lwc_table;
++static std::shared_ptr<LwcSlot> lwc_find(uint32_t address) {
++    std::lock_guard<std::mutex> hold(s_lwc_table_lock);
++    auto found=s_lwc_table.find(address);return found==s_lwc_table.end()?nullptr:found->second;
++}
++static void lwc_error(ppu_context* c,uint32_t error){c->gpr[3]=(uint64_t)(int64_t)(int32_t)error;}
+ static void sys_lwcond_create(ppu_context* ctx)
+ {
+-    static uint32_t s_lwcond_id = 0x4C000000u;
+-    uint32_t lwcond  = (uint32_t)ctx->gpr[3];
+-    uint32_t lwmutex = (uint32_t)ctx->gpr[4];
+-    vm_write32(lwcond + 0x00, lwmutex);
+-    vm_write32(lwcond + 0x04, ++s_lwcond_id);
+-    ctx->gpr[3] = 0;
+-}
+-static void sys_lwcond_destroy(ppu_context* ctx)    { ctx->gpr[3] = 0; }
+-static void sys_lwcond_signal(ppu_context* ctx)     { ctx->gpr[3] = 0; }
+-static void sys_lwcond_signal_all(ppu_context* ctx) { ctx->gpr[3] = 0; }
+-static void sys_lwcond_signal_to(ppu_context* ctx)  { ctx->gpr[3] = 0; }
+-/* Now that the lwmutex is REAL, a no-op wait that keeps holding it deadlocks the
+- * signaler. Release the paired lwmutex, wait briefly, reacquire (poll-style: the
+- * guest's while(!predicate) loop re-checks; signalers stay no-ops). Handles the
+- * common single (non-recursive) hold. */
++    static uint32_t id=0x4c000000;
++    uint32_t address=(uint32_t)ctx->gpr[3],mutex=(uint32_t)ctx->gpr[4];
++    auto slot=std::make_shared<LwcSlot>();slot->mutex=mutex;
++    {std::lock_guard<std::mutex> hold(s_lwc_table_lock);
++     s_lwc_table[address]=slot;vm_write32(address,mutex);vm_write32(address+4,++id);}
++    ctx->gpr[3]=0;
++}
++static void sys_lwcond_destroy(ppu_context* ctx) {
++    uint32_t address=(uint32_t)ctx->gpr[3];auto slot=lwc_find(address);
++    if(!slot){lwc_error(ctx,0x80010005u);return;}
++    {std::lock_guard<std::mutex> hold(slot->lock);if(!slot->waiters.empty()){lwc_error(ctx,0x8001000au);return;}}
++    {std::lock_guard<std::mutex> hold(s_lwc_table_lock);s_lwc_table.erase(address);}
++    vm_write32(address,0);vm_write32(address+4,0);ctx->gpr[3]=0;
++}
++static void lwc_signal(ppu_context* ctx,bool all,bool targeted) {
++    auto slot=lwc_find((uint32_t)ctx->gpr[3]);if(!slot){lwc_error(ctx,0x80010005u);return;}
++    bool signaled=false;
++    {std::lock_guard<std::mutex> hold(slot->lock);
++     for(auto waiter:slot->waiters)if(!waiter->notified&&(!targeted||waiter->thread==(uint32_t)ctx->gpr[4])){
++         waiter->notified=true;SetEvent(waiter->event);signaled=true;if(!all)break;
++     }}
++    if(targeted&&!signaled)lwc_error(ctx,0x80010005u);else ctx->gpr[3]=0;
++}
++static void sys_lwcond_signal(ppu_context* ctx) {lwc_signal(ctx,false,false);}
++static void sys_lwcond_signal_all(ppu_context* ctx) {lwc_signal(ctx,true,false);}
++static void sys_lwcond_signal_to(ppu_context* ctx) {lwc_signal(ctx,false,true);}
++/* Register before releasing the guest mutex and wait for a real notification.
++ * GT5's work queue uses a one-shot wait: a timed polling return dispatched a
++ * still-null task. Reacquire the same mutex and recursion depth before return. */
+ static void sys_lwcond_wait(ppu_context* ctx)
+ {
+-    uint32_t lwcond  = (uint32_t)ctx->gpr[3];
+-    uint32_t lwmutex = vm_read32(lwcond + 0x00);
+-    struct LwmSlot* sl = lwm_slot(lwmutex);
+-    if (sl) {
+-        uint32_t own = vm_read32(lwmutex + LWM_OWNER);
+-        uint32_t rc  = vm_read32(lwmutex + LWM_RECUR);
+-        vm_write32(lwmutex + LWM_RECUR, 0);
+-        vm_write32(lwmutex + LWM_OWNER, 0);
+-        ppu_thread_note_block(ctx->thread_id);
+-        lwm_release(sl);
+-        Sleep(1);
+-        lwm_acquire(sl, 0);
+-        vm_write32(lwmutex + LWM_OWNER, own);
+-        vm_write32(lwmutex + LWM_RECUR, rc ? rc : 1);
+-    }
+-    ctx->gpr[3] = 0;
++    const uint32_t address=(uint32_t)ctx->gpr[3];const uint64_t timeout=ctx->gpr[4];
++    auto slot=lwc_find(address);if(!slot){lwc_error(ctx,0x80010005u);return;}
++    uint32_t mutex=slot->mutex,self=LWM_SELF(ctx),count=vm_read32(mutex+LWM_RECUR);
++    auto sl=lwm_slot(mutex);
++    if(!sl||!count||vm_read32(mutex+LWM_OWNER)!=self){lwc_error(ctx,0x80010009u);return;}
++    LwcWaiter waiter{CreateEventA(NULL,FALSE,FALSE,NULL),self};
++    if(!waiter.event){lwc_error(ctx,0x80010001u);return;}
++    {std::lock_guard<std::mutex> hold(slot->lock);
++     slot->waiters.push_back(&waiter);
++     vm_write32(mutex+LWM_OWNER,0);vm_write32(mutex+LWM_RECUR,0);lwm_release(sl);}
++    ppu_thread_note_block(ctx->thread_id);
++    DWORD ms=timeout?(DWORD)(((timeout/1000u)+1)>0xfffffffeu?0xfffffffeu:(timeout/1000u)+1):INFINITE;
++    DWORD waited=WaitForSingleObject(waiter.event,ms);
++    bool notified;
++    {std::lock_guard<std::mutex> hold(slot->lock);notified=waiter.notified;slot->waiters.remove(&waiter);}
++    CloseHandle(waiter.event);
++    lwm_acquire(sl,0);vm_write32(mutex+LWM_OWNER,self);vm_write32(mutex+LWM_RECUR,count);
++    if(!notified&&waited==WAIT_TIMEOUT)lwc_error(ctx,0x8001000bu);else ctx->gpr[3]=0;
+ }
+ 
+ /* sys_ppu_thread_get_id(vm::ptr<u64> id) -> *id = calling thread's real id.
+--- a/runtime/spu/spu_workload.c
++++ b/runtime/spu/spu_workload.c
+@@ -1060,6 +1060,19 @@
+                   }
+               }
+           } }
++        /* Native-only runs must not let the chain announce completion of
++         * a program that never ran. Capture first, then stop for AOT lifting. */
++        const char* aot_only = getenv("GT5_AOT_ONLY");
++        if (aot_only && *aot_only == '1') {
++            fprintf(stderr, "[GT5-AOT-MISS] captured SPURS job fp=0x%016llX size=%u; stopping before completion\n",
++                    (unsigned long long)fp, image_size);
++            fflush(stderr);
++#ifdef _WIN32
++            ExitProcess(86);
++#else
++            _Exit(86);
++#endif
++        }
+         return 0;
+     }
+     /* Two lines plus two explicit flushes PER JOB. A title running its audio
+--- a/runtime/spu/spurs_job.c
++++ b/runtime/spu/spurs_job.c
+@@ -336,7 +336,9 @@
+                 (unsigned long long)g64(job_ea + JH_SIZE + 8),
+                 (unsigned long long)g64(job_ea + JH_SIZE + 16),
+                 (unsigned long long)g64(job_ea + JH_SIZE + 24));
+-        if (cmd && cmd < 0x50000000u) {
++        /* GT5's first user-data word can be a selector (e.g. 0x11),
++         * not the command-block pointer this title-specific probe assumes. */
++        if (!getenv("GT5_AOT_ONLY") && cmd >= 0x10000u && cmd < 0x50000000u) {
+             dump_cmd = cmd;
+             fprintf(stderr, "[spurs-job]   cmdblock @0x%08X:", cmd);
+             for (int o = 0; o < 64; o += 4) {

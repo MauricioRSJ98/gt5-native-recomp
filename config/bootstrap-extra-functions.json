@@ -1,0 +1,10 @@
+{
+  "scope": "Targeted additional PPU functions for the diagnostic native entry runner. Boundaries reviewed against prologue, internal branch destinations and final epilogue; runtime semantics not validated.",
+  "functions": [
+    {
+      "start": "0xac109c",
+      "end": "0xac1160",
+      "evidence": "Reached directly from startup at LR 0x10408. Starts with lis/mflr/stdu; conditional branches join the callee-save epilogue at 0xac1144; blr at 0xac115c, followed by the next stack-frame prologue at 0xac1160."
+    }
+  ]
+}
