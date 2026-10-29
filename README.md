@@ -1,10 +1,12 @@
 # GT5 Native Recomp
 
+[![Source checks](https://github.com/MauricioRSJ98/gt5-native-recomp/actions/workflows/source-checks.yml/badge.svg)](https://github.com/MauricioRSJ98/gt5-native-recomp/actions/workflows/source-checks.yml)
+
 Experimental native recompilation research for **Gran Turismo 5, PS3, BCUS98114 v2.17**, targeting **Windows x86-64 and Vulkan**.
 
 **Pre-alpha / boot bring-up. The game does not render a frame yet and is not playable.** This repository publishes the integration code, runtime patches, generation tools and address-only analysis metadata so other developers can help.
 
-[Português brasileiro](README.pt-BR.md) · [Build and regeneration](docs/BUILDING.md) · [Current status](docs/STATUS.md) · [Contributing](CONTRIBUTING.md) · [Credits and tools](docs/CREDITS.md)
+[Português brasileiro](README.pt-BR.md) · [Roadmap](https://github.com/MauricioRSJ98/gt5-native-recomp/issues/1) · [Build and regeneration](docs/BUILDING.md) · [Current status](docs/STATUS.md) · [Contributing](CONTRIBUTING.md) · [Credits and tools](docs/CREDITS.md)
 
 ## What this project does
 
@@ -36,7 +38,7 @@ Useful contributions include:
 - USB/controller compatibility services and clean Windows builds.
 - Reproducing a documented blocker using your own local game data.
 
-Start with the pinned roadmap issue, [CONTRIBUTING.md](CONTRIBUTING.md) and issues labeled `help wanted`. Small, evidenced changes are especially helpful. Report what changed and the next observed blocker; avoid repeated unchanged boot runs.
+Start with the [pinned roadmap](https://github.com/MauricioRSJ98/gt5-native-recomp/issues/1), [CONTRIBUTING.md](CONTRIBUTING.md) and [issues labeled `help wanted`](https://github.com/MauricioRSJ98/gt5-native-recomp/issues?q=is%3Aissue%20is%3Aopen%20label%3A%22help%20wanted%22). Small, evidenced changes are especially helpful. Report what changed and the next observed blocker; avoid repeated unchanged boot runs. Use [Discussions](https://github.com/MauricioRSJ98/gt5-native-recomp/discussions) for questions and planning.
 
 ## Source and local data
 

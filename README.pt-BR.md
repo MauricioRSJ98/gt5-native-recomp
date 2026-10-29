@@ -4,7 +4,7 @@ Projeto experimental de recompilação nativa do **Gran Turismo 5 de PS3 — BCU
 
 **Pré-alfa: ainda não desenha um quadro do jogo e não é jogável.** O objetivo imediato é chegar à primeira imagem real, depois ao menu e a uma corrida, mesmo com desempenho muito baixo.
 
-[Documentação principal](README.md) · [Compilação](docs/BUILDING.md) · [Estado atual](docs/STATUS.md) · [Como contribuir](CONTRIBUTING.md) · [Créditos](docs/CREDITS.md)
+[Documentação principal](README.md) · [Roteiro](https://github.com/MauricioRSJ98/gt5-native-recomp/issues/1) · [Compilação](docs/BUILDING.md) · [Estado atual](docs/STATUS.md) · [Como contribuir](CONTRIBUTING.md) · [Créditos](docs/CREDITS.md)
 
 ## Como funciona
 
@@ -14,7 +14,7 @@ No checkpoint local de 29/10/2026, existem 43.525 entradas PPU e seis imagens EL
 
 ## Quer ajudar?
 
-Precisamos de investigação de PPU/SPU, SPURS, sincronização, RSX/Vulkan, serviços USB e melhoria da reprodução da compilação. As issues identificam bloqueios concretos; use Discussions para dúvidas e planejamento. Contribuições pequenas com evidência são bem-vindas.
+Precisamos de investigação de PPU/SPU, SPURS, sincronização, RSX/Vulkan, serviços USB e melhoria da reprodução da compilação. As [issues](https://github.com/MauricioRSJ98/gt5-native-recomp/issues) identificam bloqueios concretos; use [Discussions](https://github.com/MauricioRSJ98/gt5-native-recomp/discussions) para dúvidas e planejamento. Contribuições pequenas com evidência são bem-vindas.
 
 Não envie executáveis, ISOs, arquivos do jogo, firmware, SDKs, chaves, programas SPU capturados ou corpos de código recompilado extraídos do jogo. Cada colaborador fornece seus próprios dados locais. Este repositório publica ferramentas, integração, patches e metadados de endereços.
 
