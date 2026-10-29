@@ -31,7 +31,11 @@ for dep in lock['dependencies']:
     if dep['name']=='ps3recomp':
         expected=json.loads((project/'patches/base-files.sha256.json').read_text())
         for name,digest in expected.items():
-            if hashlib.sha256((dest/name).read_bytes()).hexdigest()!=digest:raise SystemExit('Pinned runtime base differs: '+name)
+            base=dest/name;raw=base.read_bytes()
+            if hashlib.sha256(raw).hexdigest()!=digest:raise SystemExit('Pinned runtime base differs: '+name)
+            # The upstream snapshot mixes CRLF and LF. Check exact original
+            # bytes first, then use the patch's canonical LF text on all OSes.
+            base.write_bytes(raw.replace(b'\r\n',b'\n'))
         for option in ('--check',None):
             cmd=['git','apply','--directory='+dep['destination']]
             if option:cmd.append(option)

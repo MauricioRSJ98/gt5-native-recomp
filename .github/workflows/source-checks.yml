@@ -36,6 +36,8 @@ jobs:
                       assert hashlib.sha256(data).hexdigest()==digest,name
                       target=temporary/name
                       target.parent.mkdir(parents=True,exist_ok=True)
-                      target.write_bytes(data)
+                      # Verify original bytes above, then normalize line endings
+                      # to match the canonical LF patch on Linux and Windows.
+                      target.write_bytes(data.replace(b'\r\n',b'\n'))
               subprocess.run(['git','apply','--check',str(root/'patches/ps3recomp-gt5.patch')],cwd=temporary,check=True)
           PY

@@ -28,7 +28,7 @@ CI also checks that the runtime patch applies to the pinned upstream source. No 
 python scripts/fetch_dependencies.py
 ```
 
-The downloader reads `dependencies.lock.json`, keeps downloads under ignored `research/`, extracts into ignored `third_party/` and `tools/`, verifies pinned patch-base file hashes, and applies `patches/ps3recomp-gt5.patch`. SDL's archive has an explicit SHA-256. Source archives use upstream refs plus base-file verification for the patched runtime. Review upstream licenses; source archives are not tool installers.
+The downloader reads `dependencies.lock.json`, keeps downloads under ignored `research/`, extracts into ignored `third_party/` and `tools/`, verifies pinned patch-base file hashes, normalizes those text files from CRLF to LF, and applies `patches/ps3recomp-gt5.patch`. Hashes are checked against original bytes before normalization. SDL's archive has an explicit SHA-256. Source archives use upstream refs plus base-file verification for the patched runtime. Review upstream licenses; source archives are not tool installers.
 
 ## Configure local inputs
 
